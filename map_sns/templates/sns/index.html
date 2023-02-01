@@ -1,0 +1,194 @@
+{% extends "sns/base.html" %}
+{# base.htmlを継承する。 #}
+
+{# loadで使えるようになるテンプレートタグは、テンプレートのファイル単位でloadしないと使えない。 #}
+{% load static %}
+{% load custom_tags %}
+
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'sns/css/index.css' %}">
+<script>
+    //投稿されたデータをJavaScriptが読める形式にレンダリングさせる
+    //書き換え不可のグローバル変数(書き換え不可能の変数を定数という) PARKS を作る。
+    const PARKS = [
+        {% for park in parks %}
+        { "lat":{{ park.lat }},"lon":{{ park.lon }},"name":"{{ park.name }}" },
+        {% endfor %}
+    ];
+    //オブジェクト型(Pythonで言う辞書型)のリスト
+</script>
+{% endblock %}
+
+
+{% block main %}
+<div class="my-2">
+    <h2>検索欄</h2>
+
+    <form action="" method="GET">
+        <select class="form-control" name="category">
+            <option value="">カテゴリ検索</option>
+            {% for category in categories %}
+            <option value="{{ category.id }}" {% if category.str_id == request.GET.category %}selected{% endif %}>{{ category.name }}</option>
+            {% endfor %}
+        </select>
+
+        <div class="tag_area">
+            {% for tag in tags %}
+            <input id="tag_{{ tag.id }}" class="tag_chk" type="checkbox" name="tag" value="{{ tag.id }}" {% tag_checked request tag.id %}>
+            <label for="tag_{{ tag.id }}" class="tag_label">{{ tag.name }}</label>
+            {% endfor %}
+        </div>
+
+        <div class="input-group">
+            <input class="form-control" type="text" name="search" placeholder="検索欄">
+            <div class="input-group-append">
+                <input class="form-control btn btn-outline-success" type="submit" value="検索">
+            </div>
+        
+        </div>
+    </form>
+</div>
+
+<h2>新規作成</h2>
+<form class="my-2" method="POST">
+    {% csrf_token %}
+    <select class="form-control" name="category">
+        {% for category in categories %}
+        <option value="{{ category.id }}">{{ category.name }}</option>
+        {% endfor %}
+    </select>
+    <div class="tag_area">
+        {% for tag in tags %}
+        <input  id="form_tag_{{ tag.id }}" class="tag_chk" type="checkbox" name="tag" value="{{ tag.id }}" {% tag_checked request tag.id %}>
+        <label for="form_tag_{{ tag.id }}" class="tag_label">{{ tag.name }}</label>
+        {% endfor %}
+    </div>
+    <div class="form-inline">
+        <input class="form-control" id="lat_input" type="text" name="lat" placeholder="緯度" required maxlength=9>
+        <input class="form-control" id="lon_input" type="text" name="lon" placeholder="経度" required maxlength=9>
+    </div>
+    <input class="form-control" type="text" name="name" placeholder="公園名">
+    <input class="form-control btn btn-outline-success" type="submit" value="送信">
+</form>
+
+{% for park in parks %}
+<div class="border">
+    <div>{{ park.category.name }}</div>
+    <div>{{ park.name }}</div>
+    <div>タグ:{% for tag in park.tag.all %}{{ tag }} {% endfor %}</div>
+    {# TODO:モデルメソッドを呼び出す。 #}
+    <div>レビュー数({{ park.amount_review }})</div>
+
+    
+    {# TODO:レビューの平均値を表示させる #}
+    {# https://noauto-nolife.com/post/django-template-integer-for-loop/ #}
+    {# https://noauto-nolife.com/post/django-star-average/ #}
+
+    {# HTMLではインライン要素(iタグやaタグ等)の後に改行を含むと半角スペースが表示される #}
+    <div class="review_star">
+        {% for x in park.avg_star_score %}
+        <i class="fas fa-star"></i>
+        {% endfor %}
+        {% if park.avg_star_few == 1 %}
+        <i class="fas fa-star"></i>
+        {% elif park.avg_star_few == 0.5 %}
+        <i class="fas fa-star-half"></i>
+        {% endif %}
+    </div>
+
+    {% comment %}
+    <div>
+        <div>こんにちは</div>
+        <div>こんにちは</div>
+        <div>こんにちは</div>
+    </div>
+    <div>
+        こんにちは
+        こんにちは
+        こんにちは
+    </div>
+
+    <div>
+        <span>こんにちは</span>
+        <span>こんにちは</span>
+        <span>こんにちは</span>
+    </div>
+    {% endcomment %}
+
+
+    {% comment %}
+    <div class="review_star">
+        {% with range=''|center:park.avg_star_score  %}{% for x in range %}
+        <i class="fas fa-star"></i>
+        {% endfor %}{% endwith %}{% if park.avg_star_few == 1 %}
+        <i class="fas fa-star"></i>
+        {% elif park.avg_star_few == 0.5 %}
+        <i class="fas fa-star-half"></i>
+        {% endif %}
+    </div>
+    {% endcomment %}
+
+    <div class="text-right">
+        {# URL引数が含まれている場合、urlタグを実行する時、このようにスペースを1つ空けて引数を入れる #}
+        <a class="btn btn-outline-primary" href="{% url 'sns:single' park.id %}">詳細</a>
+    </div>
+
+
+</div>
+{% endfor %}
+{% endblock %}
+
+
+{% block script %}
+    <script>
+        //マップの表示位置を指定(緯度・経度)
+        //MAPとMARKERはグローバル変数、後の処理で使用する
+        //.map("ID名")で指定した要素をleaflet.jsのマップとする
+        MAP     = L.map('map').setView([34.6217684, -227.2109985], 9);
+        MARKER  = null;
+
+
+        //地図データはOSMから読み込み
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(MAP);
+
+
+
+        //JavaScriptでリストをループさせる、for of 文
+        for (let park of PARKS ){
+            //parkの緯度と経度を抜き取り、マーカー配置、配置対象の地図指定、ポップアップの指定、ポップアップの表示
+            L.marker([park["lat"], park["lon"]]).addTo(MAP).bindPopup(park["name"]).openPopup();
+        }
+        /*
+        for student in students:
+            print(student)
+
+        for (let student of students){
+            console.log(student);
+        }
+        */
+
+
+        //マウスクリックで緯度と経度の取得とポイント設置
+        function map_click(e) {
+
+            //マーカーを消す
+            if (MARKER){
+                MAP.removeLayer(MARKER);
+            }
+
+            MARKER = L.marker(e.latlng).addTo(MAP);
+            console.log(e.latlng);
+
+            //jqueryのセレクタを使用して、指定したHTML要素に対して、処理を行う
+            //.val() 値を入れる
+            $("#lat_input").val(Math.round(e.latlng["lat"]*1000000)/1000000);
+            $("#lon_input").val(Math.round(e.latlng["lng"]*1000000)/1000000);
+        }
+        MAP.on('click', map_click);
+
+    </script>
+{% endblock %}
+

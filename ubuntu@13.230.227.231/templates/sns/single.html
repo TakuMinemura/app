@@ -1,0 +1,95 @@
+{% extends "sns/base.html" %}
+{% load static %}
+
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'sns/css/single.css' %}">
+
+
+<script>
+    //投稿されたデータをJavaScriptが読める形式にレンダリングさせる
+    //書き換え不可のグローバル変数(書き換え不可能の変数を定数という) PARKS を作る。
+    const PARKS = [
+        { "lat":{{ park.lat }},"lon":{{ park.lon }},"name":"{{ park.name }}" },
+    ];
+    //オブジェクト型(Pythonで言う辞書型)のリスト
+</script>
+{% endblock %}
+
+
+{% block main %}
+	<h2>個別ページ</h2>
+    <div class="border">
+        <div>{{ park.category.name }}</div>
+        <div>{{ park.name }}</div>
+        <div>タグ:{% for tag in park.tag.all %}{{ tag }} {% endfor %}</div>
+    </div>
+
+    <h2>レビューを書く</h2>
+    <form action="" method="POST">
+        {% csrf_token %}
+
+        {# 星のinputタグの作り方 #}
+        {# https://noauto-nolife.com/post/css3-star-review-radio/ #}
+        {# <input type="number" name="star" > #}
+
+        {# このラジオボタンから1つ選ぶ。 #}
+        <input id="star_radio_1" type="radio" name="star" value="1">
+        <input id="star_radio_2" type="radio" name="star" value="2">
+        <input id="star_radio_3" type="radio" name="star" value="3">
+        <input id="star_radio_4" type="radio" name="star" value="4">
+        <input id="star_radio_5" type="radio" name="star" value="5">
+
+        <div class="star_radio_label_area">
+            <div class="star_radio_label_flex">
+                <label class="star_radio_label" for="star_radio_5"><div class="true_star" ><i class="fas fa-star"></i></div><div class="false_star"><i class="far fa-star"></i></div></label>
+                <label class="star_radio_label" for="star_radio_4"><div class="true_star" ><i class="fas fa-star"></i></div><div class="false_star"><i class="far fa-star"></i></div></label>
+                <label class="star_radio_label" for="star_radio_3"><div class="true_star" ><i class="fas fa-star"></i></div><div class="false_star"><i class="far fa-star"></i></div></label>
+                <label class="star_radio_label" for="star_radio_2"><div class="true_star" ><i class="fas fa-star"></i></div><div class="false_star"><i class="far fa-star"></i></div></label>
+                <label class="star_radio_label" for="star_radio_1"><div class="true_star" ><i class="fas fa-star"></i></div><div class="false_star"><i class="far fa-star"></i></div></label>
+            </div>
+        </div>
+        <textarea class="form-control" name="comment" placeholder="ここにコメントを書く"></textarea>
+        <input class="form-control btn btn-outline-success" type="submit" value="送信">
+    </form>
+
+	<h2>レビュー一覧</h2>
+
+    {% for review in reviews %}
+    <div class="border">
+        <div>{{ review.dt }}</div>
+
+        {% if review.user %}
+        <div>
+            <a href="{% url 'sns:user' review.user.id %}">{{ review.user.first_name }} {{ review.user.last_name }}</a>
+        </div>
+        {% endif %}
+
+        <div class="review_star">{% for x in review.star_range %}<i class="fas fa-star"></i>{% endfor %}</div>
+        <div>{{ review.comment }}</div>
+    </div>
+    {% endfor %}
+{% endblock %}
+
+
+{% block script %}
+    <script>
+        //マップの表示位置を指定(緯度・経度)
+        //MAPとMARKERはグローバル変数、後の処理で使用する
+        //.map("ID名")で指定した要素をleaflet.jsのマップとする
+        MAP     = L.map('map').setView([34.6217684, -227.2109985], 9);
+
+        //地図データはOSMから読み込み
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(MAP);
+
+        //JavaScriptでリストをループさせる、for of 文
+        for (let park of PARKS ){
+            //parkの緯度と経度を抜き取り、マーカー配置、配置対象の地図指定、ポップアップの指定、ポップアップの表示
+            L.marker([park["lat"], park["lon"]]).addTo(MAP).bindPopup(park["name"]).openPopup();
+        }
+    </script>
+{% endblock %}
+
+

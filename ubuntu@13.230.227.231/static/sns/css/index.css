@@ -1,0 +1,39 @@
+
+/* チェックボックスを非表示 */
+.tag_chk{
+    display:none;
+}
+
+.tag_area {
+    margin:0.25rem 0;
+    font-size:0;
+}
+.tag_label{
+    font-size:1rem;
+    border:solid 0.2rem forestgreen;
+    border-radius:0.5rem;
+
+    padding:0.5rem 1rem;
+    margin:0;
+    margin-right:0.25rem;
+
+    cursor:pointer;
+}
+
+/* チェックされたときの装飾 */
+/* チェックボックスがチェックされた時、すぐ下に書かれてある兄弟要素(+)の .tag_labelに対して 次の装飾をする */
+input[type="checkbox"].tag_chk:checked + .tag_label {
+    background:forestgreen;
+    color:white;
+}
+/* HTMLで改行ありだと間にスペースが表示される。
+スペースを消すため、一旦font-size:0にして消す。
+その上でiタグだけfont-size:1.2remを指定して元に戻す。
+*/
+.review_star{
+    color:orange;
+    font-size:0;
+}
+.review_star > i{
+    font-size:1.2rem;
+}

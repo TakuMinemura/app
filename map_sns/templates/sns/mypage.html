@@ -1,0 +1,186 @@
+{% load static %}
+
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>コメント付きマップ</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" crossorigin="anonymous">
+
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<!--日本語化用JS-->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ja.js"></script>
+<script src="{% static 'sns/js/user_edit.js' %}"></script>
+
+<link rel="stylesheet" href="{% static 'sns/css/mypage.css' %}">
+
+
+
+{# ダイレクトメッセージのタブシステム #}
+<style>
+    .message_radio{ display:none; }
+    .message_area { display:none; }
+    .message_label{
+        padding:0.25rem 1rem;
+        cursor:pointer;
+}
+
+{# グループの数は変動していくので、DTLにタブの装飾を行わせる #}
+{% for group in groups %}
+#message_radio_{{ forloop.counter }}[name="message_radio"]:checked + .message_label{
+    background:forestgreen;
+}
+#message_radio_{{ forloop.counter }}[name="message_radio"]:checked ~ #message_area_{{ forloop.counter }}{
+    display:block;
+}
+{% endfor %}
+</style>
+
+</head>
+<body>
+
+    <h1 class="bg-success text-center"><a class="text-white" href="{% url 'sns:index' %}">コメント付きマップ</a></h1>
+
+    <a href="{% url 'sns:mypage' %}">マイページ</a>
+    <a href="{% url 'account_logout' %}">ログアウト</a>
+
+    <main>
+        <div class="row mx-0">
+            <div class="col-sm-6">
+
+<h2>ユーザー情報編集</h2>
+
+<form action="" method="POST" enctype="multipart/form-data">
+	{% csrf_token %}
+    <div class="form-inline">
+        <input class="form-control" type="text" name="last_name" value="{{ user.last_name }}" placeholder="姓">
+        <input class="form-control" type="text" name="first_name" value="{{ user.first_name }}" placeholder="名">
+    </div>
+
+    <input class="form-control" type="text" name="nickname" value="{{ user.nickname|default:'' }}" placeholder="ニックネーム">
+    <input class="form-control dt" type="text" name="birthday" placeholder="生年月日" value="{{ user.birthday }}">
+
+    <textarea class="form-control" name="description">{{ user.description }}</textarea>
+
+    {% if user.icon %}
+    <img src="{{ user.icon.url }}" alt="設定された画像">
+    {% endif %}
+
+    <input type="file" name="icon">
+
+	<input class="btn btn-outline-primary form-control" type="submit" value="送信">
+</form>
+
+            </div>
+            <div class="col-sm-6">
+
+
+            <h2>ダイレクトメッセージユーザー一覧</h2>
+
+            {% for group in groups %}
+            <input id="message_radio_{{ forloop.counter }}" class="message_radio" name="message_radio" type="radio">
+            <label class="message_label" for="message_radio_{{ forloop.counter }}">{% for user in group.user.all %}{{ user.first_name|default:"名前無し" }} {% endfor %}</label>
+            {% endfor %}
+
+            {% for group in groups %}
+            <div id="message_area_{{ forloop.counter }}" class="message_area">
+                <div class="message_content_area">
+                    {% for message in group.messages %}
+                    <div class="{% if message.user.id == request.user.id %}mine{% else %}others{% endif %}_speech_bubble_area">
+
+                        <div>
+                            {% if message.user.icon %}
+                            <img src="{{ message.user.icon.url }}" alt="" style="width:5rem;">
+                            {% else %}
+                            <img src="" alt="画像なし">
+                            {% endif %}
+                        </div>
+                        <div>{{ message.user }}</div>
+                        <div class="speech_bubble">{{ message.content|linebreaksbr }}</div>
+                        <div>{{ message.dt }}</div>
+                        {# TODO:削除のボタンを出すには、if文でrequest.user.idとmessage.user.id が同一である場合、削除ボタンを表示 #}
+                        {% comment %}
+                        <form action="" method="POST">
+                            {% csrf_token %}
+                            <input type="submit" value="削除">
+                        </form>
+                        {% endcomment %}
+
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <form action="{% url 'sns:message' %}" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="group" value="{{ group.id }}">
+                    <textarea class="form-control" name="content"></textarea>
+                    <input type="submit" value="送信">
+                </form>
+
+
+
+            </div>
+            {% endfor %}
+
+
+            </div>
+        </div>
+    </main>
+
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{% comment %}
+{% for group in groups %}
+<div class="border">
+
+    {# ここでManyToManyFieldのデータを全て取り出す #}
+    {% for user in group.user.all %}
+    <span>{{ user }}</span>
+    {% endfor %}
+
+    <form action="{% url 'sns:message' %}" method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="group" value="{{ group.id }}">
+        <textarea class="form-control" name="content"></textarea>
+        <input type="submit" value="送信">
+    </form>
+
+    {% for message in group.messages %}
+    <div class="{% if message.user.id == request.user.id %}mine{% else %}others{% endif %}_speech_bubble_area">
+        <div>{{ message.user }}</div>
+        <div>{{ message.dt }}</div>
+        <div class="speech_bubble">{{ message.content|linebreaksbr }}</div> {# |linebreaksbr このDTLのフィルタを使うことで\nを<br>に変換してくれる #}
+    </div>
+    {% endfor %}
+
+</div>
+{% endfor %}
+{% endcomment %}
+
+
+

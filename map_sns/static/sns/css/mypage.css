@@ -1,0 +1,36 @@
+.mine_speech_bubble_area{
+    text-align:right;
+}
+.others_speech_bubble_area{
+    text-align:left;
+}
+.mine_speech_bubble_area .speech_bubble {
+    /* 自分が送った時は右下の角をつける */
+    background:lime;
+    border-bottom-right-radius:0;
+}
+.others_speech_bubble_area .speech_bubble {
+    /* 自分が送った時は右下の角をつける */
+    background:silver;
+    border-top-left-radius:0;
+}
+.speech_bubble{
+    text-align:left;
+    word-break:break-all;
+
+    display:inline-block;
+    max-width:80%;
+    padding:0.5rem 1rem;
+    margin:0.5rem 0;
+    border-radius:1rem;
+}
+
+
+
+/* ダイレクトメッセージ */
+
+.message_content_area{
+    /* この領域の高さを画面の70%とし、Y方向にはみ出したらスクロールバーを出す*/
+    height:60vh;
+    overflow-y:auto;
+}
